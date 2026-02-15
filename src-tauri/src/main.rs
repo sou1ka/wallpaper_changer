@@ -392,7 +392,13 @@ fn main() {
                         window.set_focus().unwrap();
                     }
                     "quit" => {
-                        std::process::exit(0);
+                        // 終了処理を実行してからアプリを終了
+                        let state_ref = app.state::<AppState>();
+                        let initial = state_ref.initial_wallpaper.lock().unwrap().clone();
+                        if let Some(path) = initial {
+                            set_wallpaper(&path);
+                        }
+                        app.exit(0);
                     }
                     _ => {}
                 }

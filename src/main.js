@@ -80,6 +80,23 @@ window.addEventListener("DOMContentLoaded", function() {
     setupAutoSave();
 });
 
+document.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+}, false);
+
+document.addEventListener('selectstart', function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+});
+
+document.addEventListener('keydown', async function(e) {
+  if(e.key == 'F5' || (e.ctrlKey && e.key == 'r') || e.key == 'F7') {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+});
+
 // ファイル参照
 async function relImage() {
     document.querySelector(".app-btn").addEventListener("click", async () => {

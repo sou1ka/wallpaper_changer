@@ -104,3 +104,48 @@ hr {
 .imagelist img.fade-out {
   opacity: 0;
 }
+
+.app-navbar-wrap .app-navbar-toggler::after {
+    content: "" !important;
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background-image: url('./assets/icons10-align-justify.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    filter: invert(1) hue-rotate(180deg);
+}
+
+body.dark-theme .app-navbar-wrap .app-navbar-toggler::after {
+    filter: none !important;
+}
+
+input+.app-navbar-theme-switch-icon:before {
+    content: "" !important;
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background-image: url('./assets/icons10-sun.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    filter: invert(1) hue-rotate(180deg);
+}
+
+body.dark-theme input+.app-navbar-theme-switch-icon:before {
+    filter: none !important;
+}
+
+input:checked+.app-navbar-theme-switch-icon:before {
+    content: "" !important;
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background-image: url('./assets/icons10-moon.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    filter: invert(1) hue-rotate(0deg);
+}
+
+body.dark-theme input:checked+.app-navbar-theme-switch-icon:before {
+    filter: none !important;
+}

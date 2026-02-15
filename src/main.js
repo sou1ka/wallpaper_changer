@@ -64,10 +64,10 @@ async function loadConfig() {
   // 初期化
   container.innerHTML = "";
 
-  if (!cfg.fileTargets || cfg.fileTargets.length === 0) {
-    container.textContent = "Not selected...";
-    return;
-  }
+  //if (!cfg.fileTargets || cfg.fileTargets.length === 0) {
+  //  container.textContent = "Not selected...";
+  //  return;
+  //}
 
   renderThumbnails(cfg.fileTargets);
 }

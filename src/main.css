@@ -1,0 +1,106 @@
+@font-face {
+	font-family: 'Migu1C';
+	src: url("./assets/migu-1c-regular.ttf");
+}
+
+@font-face {
+	font-family: 'Migu1C-bold';
+	src: url("./assets/migu-1c-bold.ttf");
+}
+
+:root {
+  font-family: Migu1C, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+
+  --PrimaryColor: #0078D7; /* Change of your choice */
+  --PrimaryColorLight: #60CDFF; /* Lighter version of --PrimaryColor for DarkMode */
+  color: #0f0f0f;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+[data-theme="dark"] ::selection {
+    background-color: #2E517E;
+}
+
+body {
+  font-family: "Segoe UI";
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  height: 100vh;
+}
+
+path {
+  fill: light-dark(var(--PrimaryColor), var(--PrimaryColorLight))
+}
+
+hr {
+  visibility: hidden;
+  margin-top: 30px;
+}
+
+.w-auto {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.padding-10 {
+  padding: 10px;
+}
+
+.label-container {
+  display: flex;
+  padding-right: 40px;
+  margin-bottom: 3px;
+}
+
+.label-container label {
+  width: 70%;
+}
+
+.label-container label small {
+  font-size: 80%;
+  display: block;
+  font-weight: 100;
+}
+
+.label-container div {
+  margin: auto 0 auto auto;
+}
+
+.label-container div span {
+  margin: auto 5px;
+}
+
+.imagelist {
+  pointer-events: auto;
+  min-height: 100px;
+}
+
+.imagelist img {
+  vertical-align: top;
+}
+
+.imagelist img {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.imagelist img.fade-in {
+  opacity: 0;
+}
+
+.imagelist img.fade-in.show {
+  opacity: 1;
+}
+
+.imagelist img.fade-out {
+  opacity: 0;
+}

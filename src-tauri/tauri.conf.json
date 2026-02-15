@@ -1,0 +1,61 @@
+{
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "devPath": "../src",
+    "distDir": "../src",
+    "withGlobalTauri": true
+  },
+  "package": {
+    "productName": "wallpaper_changer",
+    "version": "0.0.1"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": true,
+      "shell": {
+        "all": false,
+        "open": true
+      },
+      "protocol": {
+        "asset": true,
+        "assetScope": ["**"]
+      }
+    },
+    "bundle": {
+      "active": true,
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ],
+      "identifier": "com.sou1ka.tauri.wallpaperchanger",
+      "targets": "all"
+    },
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost"
+    },
+    "updater": {
+      "active": false
+    },
+    "windows": [
+      {
+        "label": "wallpaper_changer",
+        "fullscreen": false,
+        "resizable": true,
+        "title": "Wallpaper Changer",
+        "width": 920,
+        "height": 680,
+        "minWidth": 400,
+        "minHeight": 300,
+        "transparent": true
+      }
+    ],
+    "systemTray": {
+      "iconPath": "icons/icon.ico",
+      "iconAsTemplate": true
+    }
+  }
+}

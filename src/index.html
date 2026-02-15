@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="./main.css" />
+    <link rel="stylesheet" href="./assets/windows-ui.min.css" />
+    <link rel="stylesheet" href="./assets/winui-icons.min.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tauri App</title>
+    <script type="module" src="/main.js" defer></script>
+    <script src="./assets/dateformat.js"></script>
+    <script src="./assets/simpletab.js"></script>
+    <style>
+      input:checked + .app-navbar-theme-switch-icon::after {
+        content: "Dark Mode";
+      }
+
+      input + .app-navbar-theme-switch-icon::after {
+        width: 100px;
+        content: "Light Mode";
+      }
+
+      </style>
+  </head>
+
+  <body>
+
+    <main class="container-flex-row">
+      <aside class="app-navbar-wrap" id="NavBarMain">
+        <div class="app-navbar-header-mobile">
+          <span class="app-navbar-toggler" data-win-toggle="navbar-left" data-win-target="#NavBarMain"></span>
+          <div>
+            <span class="app-navbar-name"><img src="./assets/32x32.png" width="18" height="18" style="vertical-align: sub;" />&nbsp;Wallpaper Changer</span>
+          </div>
+        </div>
+        <nav class="app-navbar">
+          <div class="app-navbar-header">
+            <span class="app-navbar-toggler" data-win-toggle="navbar-left" data-win-target="#NavBarMain" aria-controls="NavBarMain" aria-label="Toggle navigation"></span>
+            <span class="app-navbar-name"><img src="./assets/32x32.png" width="18" height="18" style="vertical-align: sub;" />&nbsp;Wallpaper Changer</span>
+          </div>
+          <ul class="app-navbar-list" id="app-navbar-list">
+            <li class="app-navbar-list-item nav-item">
+              <a href="javascript:void(0);" class="nav-link active" data-tab-list="images">
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6.25A3.25 3.25 0 0 1 6.25 3h9a3.25 3.25 0 0 1 3.25 3.25v9c0 .646-.189 1.248-.514 1.755l-5.692-5.376a2.25 2.25 0 0 0-3.09 0l-5.69 5.375A3.235 3.235 0 0 1 3 15.25v-9Zm10.747 2.746a1.248 1.248 0 1 0 0-2.496 1.248 1.248 0 0 0 0 2.496Z" /><path d="m11.264 12.72 5.642 5.327a3.235 3.235 0 0 1-1.656.453h-9a3.235 3.235 0 0 1-1.656-.453l5.64-5.327a.75.75 0 0 1 1.03 0Z" /><path d="M8.749 21a3.247 3.247 0 0 1-2.74-1.5h9.74a3.75 3.75 0 0 0 3.75-3.75V6.011a3.247 3.247 0 0 1 1.5 2.74v7c0 2.899-2.35 5.25-5.25 5.25h-7Z" /></svg>
+                <span>View Image</span>
+              </a>
+            </li>
+            <li class="app-navbar-list-item nav-item">
+              <a href="javascript:void(0);" class="nav-link" data-tab-list="settings">
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 21h2.522a6.52 6.52 0 0 1-.848-5H9.5v5ZM21 9.5v2.522a6.52 6.52 0 0 0-5-.848V9.5h5Zm-6.5 0v2.232a6.53 6.53 0 0 0-2.768 2.768H9.5v-5h5ZM21 8V6.25A3.25 3.25 0 0 0 17.75 3H16v5h5Zm-6.5-5h-5v5h5V3ZM8 3H6.25A3.25 3.25 0 0 0 3 6.25V8h5V3ZM3 9.5v5h5v-5H3ZM3 16v1.75A3.25 3.25 0 0 0 6.25 21H8v-5H3Zm11.278-2.025a2 2 0 0 1-1.441 2.497l-.584.144a5.729 5.729 0 0 0 .006 1.807l.54.13a2 2 0 0 1 1.45 2.51l-.187.632c.44.386.94.699 1.484.921l.494-.518a2 2 0 0 1 2.899 0l.498.525a5.281 5.281 0 0 0 1.483-.913l-.198-.686a2 2 0 0 1 1.441-2.496l.584-.144a5.716 5.716 0 0 0-.006-1.808l-.54-.13a2 2 0 0 1-1.45-2.51l.187-.63a5.278 5.278 0 0 0-1.484-.923l-.493.519a2 2 0 0 1-2.9 0l-.498-.525c-.544.22-1.044.53-1.483.912l.198.686ZM17.5 19c-.8 0-1.45-.672-1.45-1.5 0-.829.65-1.5 1.45-1.5.8 0 1.45.671 1.45 1.5 0 .828-.65 1.5-1.45 1.5Z" /></svg>
+                <span>Settings</span>
+              </a>
+            </li>
+
+            <label class="app-navbar-theme-switch">
+              <input id="app-navbar-theme-switch" type="checkbox">
+              <div class="app-navbar-theme-switch-icon"></div>
+            </label>
+          </ul>
+        </nav>
+      </aside>
+
+      <div class="app-page-container has-padding tab-content">
+
+        <div class="tab-pane active" data-tab-pane="images">
+          <h1>View Image</h1>
+          <div class="app-table-view-container padding-10 w-auto label-container">
+            <label>画像／フォルダの選択</label>
+            <div>
+              <button class="app-btn">
+                <span>画像を参照</span>
+              </button>
+            </div>
+          </div>
+
+          <hr />
+
+          <p><strong>一覧</strong></p>
+          <div class="app-table-view-container padding-10 w-auto">
+            <div class="imagelist">Not selected...</div>
+          </div>
+
+        </div>
+
+        <div class="tab-pane" data-tab-pane="settings">
+          <h1>Settings</h1>
+
+          <div class="app-table-view-container padding-10 w-auto label-container">
+            <label>切替時間<small class="app-para-light">画像を切り替える秒数を指定します</small></label>
+            <div><input class="app-input-text" name="interval" type="number" min="0" value="60" style="width: 80px; text-align: right;" placeholder="Enter a second" /></div>
+          </div>
+
+          <div class="app-table-view-container padding-10 w-auto label-container">
+            <label>開始時刻<small class="app-para-light">処理の開始時刻を指定します</small></label>
+            <div><input class="app-input-text" name="startTime" type="time" placeholder="Enter a time" /></div>
+          </div>
+
+          <div class="app-table-view-container padding-10 w-auto label-container">
+            <label>終了時刻<small class="app-para-light">処理の終了時刻を指定します</small></label>
+            <div><input class="app-input-text" name="endTime" type="time" placeholder="Enter a time" /></div>
+          </div>
+
+          <div class="app-table-view-container padding-10 w-auto label-container">
+            <label>曜日<small class="app-para-light">処理する曜日を指定します</small></label>
+            <div>
+              <div class="app-select-menu">
+                <select name="week">
+                  <option value="">-</option>
+                  <option value="sun">日</option>
+                  <option value="mon">月</option>
+                  <option value="tue">火</option>
+                  <option value="wed">水</option>
+                  <option value="thu">木</option>
+                  <option value="fri">金</option>
+                  <option value="sat">土</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="app-table-view-container padding-10 w-auto label-container">
+            <label>日付<small class="app-para-light">処理する日を指定します</small></label>
+            <div>
+              <div class="app-select-menu">
+                <select name="day">
+                  <option value="">-</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="10">10</option>
+                  <option value="11">11</option>
+                  <option value="12">12</option>
+                  <option value="13">13</option>
+                  <option value="14">14</option>
+                  <option value="15">15</option>
+                  <option value="16">16</option>
+                  <option value="17">17</option>
+                  <option value="18">18</option>
+                  <option value="19">19</option>
+                  <option value="20">20</option>
+                  <option value="21">22</option>
+                  <option value="22">22</option>
+                  <option value="23">23</option>
+                  <option value="24">24</option>
+                  <option value="25">25</option>
+                  <option value="26">26</option>
+                  <option value="27">27</option>
+                  <option value="28">28</option>
+                  <option value="29">29</option>
+                  <option value="30">30</option>
+                  <option value="31">31</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+    <script src="./assets/windows-ui.min.js"></script>
+  </body>
+</html>

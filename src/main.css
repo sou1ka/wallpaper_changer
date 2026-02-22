@@ -82,6 +82,29 @@ hr {
 .imagelist {
   pointer-events: auto;
   min-height: 100px;
+  position: relative;
+  color: transparent; /* hide any hardcoded inline text (we show placeholder via ::before) */
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+/* show placeholder text when there are no image children */
+.imagelist::before {
+  content: "Not selected...";
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  color: #6b6b6b;
+  font-style: italic;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* hide the placeholder when an image exists (works in modern WebView/Chromium) */
+.imagelist:has(img)::before {
+  display: none;
 }
 
 .imagelist img {
@@ -148,4 +171,8 @@ input:checked+.app-navbar-theme-switch-icon:before {
 
 body.dark-theme input:checked+.app-navbar-theme-switch-icon:before {
     filter: none !important;
+}
+
+.switch {
+    width: 60px;
 }

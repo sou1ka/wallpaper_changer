@@ -4,6 +4,7 @@ const { appWindow } = window.__TAURI__.window;
 
 async function saveConfig() {
   const interval = document.querySelector('input[name="interval"]').value;
+  const random = document.querySelector('input[name="random"]').checked;
   const startTime = document.querySelector('input[name="startTime"]').value;
   const endTime = document.querySelector('input[name="endTime"]').value;
 
@@ -19,6 +20,7 @@ async function saveConfig() {
 
   const payload = {
     interval: Number(interval),
+    random: random,
     startDt: startTime || null,
     endDt: endTime || null,
     weekly: week ? [week] : null,
@@ -33,7 +35,7 @@ async function saveConfig() {
 
 function setupAutoSave() {
   const inputs = document.querySelectorAll(
-    'input[name="interval"], input[name="startTime"], input[name="endTime"], select[name="week"], select[name="day"]'
+    'input[name="interval"], input[name="random"], input[name="startTime"], input[name="endTime"], select[name="week"], select[name="day"]'
   );
 
   inputs.forEach((el) => {
@@ -47,6 +49,7 @@ async function loadConfig() {
   //console.log("Loaded config:", cfg);
 
   document.querySelector('input[name="interval"]').value = cfg.interval ?? 60;
+  document.querySelector('input[name="random"]').value = (cfg.random === false ? false : true);
   document.querySelector('input[name="startTime"]').value = cfg.startDt ?? "";
   document.querySelector('input[name="endTime"]').value = cfg.endDt ?? "";
 
@@ -63,12 +66,6 @@ async function loadConfig() {
 
   // 初期化
   container.innerHTML = "";
-
-  //if (!cfg.fileTargets || cfg.fileTargets.length === 0) {
-  //  container.textContent = "Not selected...";
-  //  return;
-  //}
-
   renderThumbnails(cfg.fileTargets);
 }
 

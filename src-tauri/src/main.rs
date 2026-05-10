@@ -636,10 +636,10 @@ fn main() {
                                 }
                             }
 
-                            //println!("loop: {}", interval_secs);
-                            // interval スリープ または 設定変更で早期再評価
+                            // 最大60秒ごとに時刻を再チェック（開始・終了の検出遅延を60秒以内に抑える）
+                            let sleep_secs = interval_secs.min(60);
                             tokio::select! {
-                                _ = sleep(Duration::from_secs(interval_secs)) => {},
+                                _ = sleep(Duration::from_secs(sleep_secs)) => {},
                                 _ = state_ref.notify.notified() => {},
                             }
                         }

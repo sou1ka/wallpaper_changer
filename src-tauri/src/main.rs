@@ -6,7 +6,7 @@
 use std::{
     fs,
     path::{Path, PathBuf},
-    sync::{Mutex},
+    sync::Mutex,
     time::Duration,
 };
 
@@ -14,19 +14,12 @@ use chrono::{Datelike, Local, NaiveTime, Weekday};
 use rand::{seq::SliceRandom, thread_rng};
 use serde::{Deserialize, Serialize};
 use tauri::{
-    Manager,
-    RunEvent,
-    SystemTray,
-    SystemTrayEvent,
-    CustomMenuItem,
-    SystemTrayMenu,
-    SystemTrayMenuItem,
-    WindowEvent,
-    Size,
-    LogicalSize,
+    menu::{Menu, MenuItem, PredefinedMenuItem},
+    tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
+    LogicalSize, Manager, RunEvent, Size, WindowEvent,
 };
-use tokio::time::sleep;
 use tokio::sync::Notify;
+use tokio::time::sleep;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -114,7 +107,8 @@ fn load_config_from_exe_dir() -> AppConfig {
     let exe_dir = exe_path.parent().unwrap();
     let config_path = exe_dir.join("config.json");
 
-    if !config_path.exists() { // config.json が無い場合は default を作成して保存 ---
+    if !config_path.exists() {
+        // config.json が無い場合は default を作成して保存 ---
         eprintln!("config.json not found. Creating default config.");
 
         let default_cfg = AppConfig::default();
@@ -156,7 +150,7 @@ fn parse_hhmm(s: &str) -> Option<NaiveTime> {
     NaiveTime::parse_from_str(s, "%H:%M").ok()
 }
 
-fn should_run(now: chrono::DateTime<Local>, cfg: &AppConfig) -> bool {
+fn should_run(now: chrono::DateTime<Local>, cfg: &AppConfig, currently_active: bool) -> bool {
     if let Some(weekly) = &cfg.weekly {
         let today = now.weekday();
         if !weekly.iter().any(|w| weekday_str_to_enum(w) == Some(today)) {
@@ -171,19 +165,49 @@ fn should_run(now: chrono::DateTime<Local>, cfg: &AppConfig) -> bool {
     }
 
     let time = now.time();
+    let start = cfg.start_dt.as_deref().and_then(parse_hhmm);
+    let end = cfg.end_dt.as_deref().and_then(parse_hhmm);
 
-    if let Some(start_str) = &cfg.start_dt {
-        if let Some(start_time) = parse_hhmm(start_str) {
-            if time < start_time {
+    if currently_active {
+        // 動作中: 終了条件のみチェック
+        if let Some(end_time) = end {
+            let stop = match start {
+                Some(start_time) if start_time > end_time => {
+                    // 日またぎ: [end_time, start_time) のギャップにいれば停止
+                    time > end_time && time < start_time
+                }
+                _ => {
+                    // 同日: end_time を過ぎたら停止
+                    time > end_time
+                }
+            };
+            if stop {
                 return false;
             }
         }
-    }
-
-    if let Some(end_str) = &cfg.end_dt {
-        if let Some(end_time) = parse_hhmm(end_str) {
-            if time > end_time {
-                return false;
+    } else {
+        // 停止中: 開始ウィンドウに入っているかチェック
+        match (start, end) {
+            (Some(s), Some(e)) if s <= e => {
+                // 同日範囲 [s, e]
+                if time < s || time > e {
+                    return false;
+                }
+            }
+            (Some(s), Some(e)) => {
+                // 日またぎ範囲: time >= s OR time <= e の外なら停止
+                if time < s && time > e {
+                    return false;
+                }
+            }
+            (Some(s), None) => {
+                // 開始のみ: s 以降であれば動作
+                if time < s {
+                    return false;
+                }
+            }
+            _ => {
+                // 条件なし: 常に動作
             }
         }
     }
@@ -259,7 +283,8 @@ fn save_config(app_handle: tauri::AppHandle, config: AppConfig) -> Result<(), St
         }
     }
 
-    let json = serde_json::to_string_pretty(&merged).map_err(|e| format!("serialize error: {}", e))?;
+    let json =
+        serde_json::to_string_pretty(&merged).map_err(|e| format!("serialize error: {}", e))?;
 
     std::fs::write(&config_path, json).map_err(|e| format!("write error: {}", e))?;
     //println!("save: {} {:?}", config_path.display(), merged);
@@ -297,7 +322,10 @@ fn load_config_for_frontend() -> Result<AppConfig, String> {
 }
 
 #[tauri::command]
-fn add_file_targets(app_handle: tauri::AppHandle, paths: Vec<String>) -> Result<Vec<String>, String> {
+fn add_file_targets(
+    app_handle: tauri::AppHandle,
+    paths: Vec<String>,
+) -> Result<Vec<String>, String> {
     let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
     let exe_dir = exe_path.parent().ok_or("failed to get exe dir")?;
     let config_path = exe_dir.join("config.json");
@@ -354,7 +382,8 @@ fn remove_file_target(app_handle: tauri::AppHandle, path: String) -> Result<Vec<
     let config_path = exe_dir.join("config.json");
     //println!("save path(remove): {}", path);
 
-    let mut cfg = if config_path.exists() { // config.json を読み込み
+    let mut cfg = if config_path.exists() {
+        // config.json を読み込み
         let content =
             std::fs::read_to_string(&config_path).map_err(|e| format!("read error: {}", e))?;
         serde_json::from_str::<AppConfig>(&content).map_err(|e| format!("parse error: {}", e))?
@@ -385,14 +414,16 @@ fn remove_file_target(app_handle: tauri::AppHandle, path: String) -> Result<Vec<
 }
 
 fn main() {
-    let show = CustomMenuItem::new("show".to_string(), "表示");
-    let quit = CustomMenuItem::new("quit".to_string(), "閉じる");
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(show)
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(quit);
-
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_http::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             save_config,
             load_config_for_frontend,
@@ -403,11 +434,8 @@ fn main() {
             let initial_wallpaper = get_current_wallpaper();
             let config = load_config_from_exe_dir();
 
-            // Attempt to restore window size and minimized state from config (if present).
-            if let Some(win) = app.get_window("wallpaper_changer") {
-                // restore size if both width and height are available
+            if let Some(win) = app.get_webview_window("wallpaper_changer") {
                 if let (Some(w), Some(h)) = (config.window_width, config.window_height) {
-                    // set_size expects logical sizes (f64)
                     let _ = win.set_size(Size::Logical(LogicalSize {
                         width: w as f64,
                         height: h as f64,
@@ -417,20 +445,76 @@ fn main() {
 
             app.manage(AppState::new(initial_wallpaper, config));
 
+            // Tauri v2 システムトレイ
+            let show_item = MenuItem::with_id(app, "show", "表示", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "閉じる", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[
+                &show_item,
+                &PredefinedMenuItem::separator(app)?,
+                &quit_item,
+            ])?;
+
+            let tray = TrayIconBuilder::new()
+                .menu(&menu)
+                .icon(app.default_window_icon().unwrap().clone())
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("wallpaper_changer") {
+                            let _ = window.unminimize();
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                    "quit" => {
+                        let state_ref = app.state::<AppState>();
+                        let initial = state_ref.initial_wallpaper.lock().unwrap().clone();
+                        if let Some(path) = initial {
+                            set_wallpaper(&path);
+                        }
+                        app.exit(0);
+                    }
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::DoubleClick {
+                        button: MouseButton::Left,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("wallpaper_changer") {
+                            let is_visible = window.is_visible().unwrap_or(false);
+                            let is_minimized = window.is_minimized().unwrap_or(false);
+                            if is_visible && !is_minimized {
+                                // 通常表示中 → 非表示（トレイに格納）
+                                let _ = window.hide();
+                            } else {
+                                // 非表示 or 最小化中 → 復元
+                                let _ = window.unminimize();
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                    }
+                })
+                .build(app)?;
+
+            // TrayIcon を管理下に置いてアプリ終了まで生存させる
+            app.manage(tray);
+
             Ok(())
         })
-        .system_tray(SystemTray::new().with_menu(tray_menu))
-        .on_window_event(|event| {
-            // handle window events to persist window size and minimized state immediately
-            match event.event() {
+        .on_window_event(|window, event: &WindowEvent| {
+            match event {
                 WindowEvent::Resized(_size) => {
-                    //println!("window resize event");
-                    // Save new size when window is resized (simplified, best-effort).
-                    let win = event.window();
-                    if let Ok(size) = win.inner_size() {
-                        let width = size.width as u32;
-                        let height = size.height as u32;
-                        let minimized = win.is_minimized().unwrap_or(false);
+                    // 最小化中は不正なサイズが取得されるためスキップ
+                    if window.is_minimized().unwrap_or(false) {
+                        return;
+                    }
+                    if let Ok(size) = window.inner_size() {
+                        let width = size.width;
+                        let height = size.height;
+                        let minimized = window.is_minimized().unwrap_or(false);
                         if let Ok(exe_path) = std::env::current_exe() {
                             if let Some(exe_dir) = exe_path.parent() {
                                 let config_path = exe_dir.join("config.json");
@@ -447,8 +531,7 @@ fn main() {
                                 cfg.window_minimized = Some(minimized);
                                 if let Ok(json) = serde_json::to_string_pretty(&cfg) {
                                     let _ = std::fs::write(&config_path, json);
-                                    // update in-memory state
-                                    let app_handle = win.app_handle();
+                                    let app_handle = window.app_handle();
                                     let state_ref = app_handle.state::<AppState>();
                                     let mut state_cfg = state_ref.config.lock().unwrap();
                                     *state_cfg = cfg;
@@ -458,54 +541,15 @@ fn main() {
                     }
                 }
                 WindowEvent::CloseRequested { api, .. } => {
-                    //println!("window close event");
-                    event.window().hide().unwrap();
+                    let _ = window.hide();
                     api.prevent_close();
                 }
                 _ => {}
             }
         })
-        .on_system_tray_event(|app, event| match event {
-            SystemTrayEvent::DoubleClick {
-                position: _,
-                size: _,
-                ..
-            } => {
-                let window = app.get_window("wallpaper_changer").unwrap();
-
-                if window.is_visible().unwrap() {
-                    window.hide().unwrap();
-                } else {
-                    window.unminimize().unwrap();
-                    window.show().unwrap();
-                    window.set_focus().unwrap();
-                }
-            }
-            SystemTrayEvent::MenuItemClick { id, .. } => {
-                match id.as_str() {
-                    "show" => {
-                        let window = app.get_window("wallpaper_changer").unwrap();
-                        window.unminimize().unwrap();
-                        window.show().unwrap();
-                        window.set_focus().unwrap();
-                    }
-                    "quit" => {
-                        // 終了処理を実行してからアプリを終了
-                        let state_ref = app.state::<AppState>();
-                        let initial = state_ref.initial_wallpaper.lock().unwrap().clone();
-                        if let Some(path) = initial {
-                            set_wallpaper(&path);
-                        }
-                        app.exit(0);
-                    }
-                    _ => {}
-                }
-            }
-            _ => {}
-        })
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
-        .run(|app_handle, event| {
+        .run(|app_handle: &tauri::AppHandle, event| {
             match event {
                 RunEvent::Ready => {
                     let app_handle = app_handle.clone();
@@ -513,8 +557,17 @@ fn main() {
                     tauri::async_runtime::spawn(async move {
                         loop {
                             // --- 設定を読み出す ---
-                            let (should_run_now, file_targets, initial_wallpaper, interval_secs, random_flag) = {
+                            let (
+                                should_run_now,
+                                file_targets,
+                                initial_wallpaper,
+                                interval_secs,
+                                random_flag,
+                            ) = {
                                 let state_ref = app_handle.state::<AppState>();
+
+                                // 現在の動作状態を先読み（should_run の判定に使う）
+                                let currently_active = *state_ref.random_active.lock().unwrap();
 
                                 // config の取り出し
                                 let cfg_cloned = {
@@ -530,8 +583,15 @@ fn main() {
                                     )
                                 };
 
-                                let (file_targets, start_dt, end_dt, weekly, monthly, interval_secs, random_flag) =
-                                    cfg_cloned;
+                                let (
+                                    file_targets,
+                                    start_dt,
+                                    end_dt,
+                                    weekly,
+                                    monthly,
+                                    interval_secs,
+                                    random_flag,
+                                ) = cfg_cloned;
 
                                 // should_run 判定
                                 let now = Local::now();
@@ -543,7 +603,7 @@ fn main() {
                                     tmp_cfg.weekly = weekly;
                                     tmp_cfg.monthly = monthly;
                                     tmp_cfg.interval = interval_secs;
-                                    should_run(now, &tmp_cfg)
+                                    should_run(now, &tmp_cfg, currently_active)
                                 };
 
                                 // initial_wallpaper の取り出し
@@ -552,7 +612,13 @@ fn main() {
                                     lock.clone()
                                 };
 
-                                (run, file_targets, initial_wallpaper, interval_secs, random_flag)
+                                (
+                                    run,
+                                    file_targets,
+                                    initial_wallpaper,
+                                    interval_secs,
+                                    random_flag,
+                                )
                             };
 
                             // --- ランダム / 逐次処理 ---
@@ -596,14 +662,20 @@ fn main() {
                                         // start from the next index after the last shown image
                                         if *last_rand && idx_lock.is_none() {
                                             if let Some(last_path) = &*last_shown_lock {
-                                                if let Some(pos) = file_targets.iter().position(|p| p == last_path) {
-                                                    *idx_lock = Some((pos + 1) % file_targets.len());
+                                                if let Some(pos) =
+                                                    file_targets.iter().position(|p| p == last_path)
+                                                {
+                                                    *idx_lock =
+                                                        Some((pos + 1) % file_targets.len());
                                                 } else {
                                                     *idx_lock = Some(0);
                                                 }
                                             } else if let Some(current) = get_current_wallpaper() {
-                                                if let Some(pos) = file_targets.iter().position(|p| p == &current) {
-                                                    *idx_lock = Some((pos + 1) % file_targets.len());
+                                                if let Some(pos) =
+                                                    file_targets.iter().position(|p| p == &current)
+                                                {
+                                                    *idx_lock =
+                                                        Some((pos + 1) % file_targets.len());
                                                 } else {
                                                     *idx_lock = Some(0);
                                                 }

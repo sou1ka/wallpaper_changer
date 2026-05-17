@@ -3,13 +3,10 @@
   "description": "permissions that were migrated from v1",
   "local": true,
   "windows": [
-    "main"
+    "wallpaper_changer"
   ],
   "permissions": [
     "core:default",
-    "shell:allow-open",
-    "dialog:allow-open",
-    "dialog:default",
-    "shell:default"
+    "dialog:allow-open"
   ]
 }

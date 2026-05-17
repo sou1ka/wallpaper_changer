@@ -1,6 +1,7 @@
-const { invoke, convertFileSrc } = window.__TAURI__.tauri;
+const { invoke, convertFileSrc } = window.__TAURI__.core;
 const { open } = window.__TAURI__.dialog;
-const { appWindow } = window.__TAURI__.window;
+const { getCurrentWindow } = window.__TAURI__.window;
+const appWindow = getCurrentWindow();
 
 async function saveConfig() {
   const interval = document.querySelector('input[name="interval"]').value;
@@ -33,15 +34,34 @@ async function saveConfig() {
   await invoke("save_config", { config: payload });
 }
 
+function updateEndTimeState() {
+  const startTime = document.querySelector('input[name="startTime"]');
+  const endTime = document.querySelector('input[name="endTime"]');
+
+  if (!startTime.value) {
+    endTime.disabled = true;
+    endTime.value = "";
+  } else {
+    endTime.disabled = false;
+  }
+}
+
 function setupAutoSave() {
-  const inputs = document.querySelectorAll(
-    'input[name="interval"], input[name="random"], input[name="startTime"], input[name="endTime"], select[name="week"], select[name="day"]'
-  );
+  const inputs = document.querySelectorAll('input[name="interval"], input[name="random"], input[name="endTime"], select[name="week"], select[name="day"]');
 
   inputs.forEach((el) => {
     el.addEventListener("input", saveConfig);
     el.addEventListener("change", saveConfig);
   });
+
+  const startTimeInput = document.querySelector('input[name="startTime"]');
+  const handleStartTimeChange = function() {
+    updateEndTimeState();
+    saveConfig();
+  };
+
+  startTimeInput.addEventListener("input", handleStartTimeChange);
+  startTimeInput.addEventListener("change", handleStartTimeChange);
 }
 
 async function loadConfig() {
@@ -50,8 +70,17 @@ async function loadConfig() {
 
   document.querySelector('input[name="interval"]').value = cfg.interval ?? 60;
   document.querySelector('input[name="random"]').value = (cfg.random === false ? false : true);
-  document.querySelector('input[name="startTime"]').value = cfg.startDt ?? "";
-  document.querySelector('input[name="endTime"]').value = cfg.endDt ?? "";
+  const startTimeInput = document.querySelector('input[name="startTime"]');
+  const endTimeInput = document.querySelector('input[name="endTime"]');
+  startTimeInput.value = cfg.startDt ?? "";
+
+  if (!startTimeInput.value) {
+    endTimeInput.disabled = true;
+    endTimeInput.value = "";
+  } else {
+    endTimeInput.disabled = false;
+    endTimeInput.value = cfg.endDt ?? "";
+  }
 
   // weekly は配列なので先頭だけ反映（UI が単一選択のため）
   document.querySelector('select[name="week"]').value =
@@ -127,22 +156,22 @@ function initDD() {
     dropArea.classList.remove("dragover");
   });
 
-  appWindow.onFileDropEvent(async (event) => {
+  appWindow.onDragDropEvent(async (event) => {
     const payload = event.payload;
 
-    if (payload.type === "hover") {
+    if (payload.type === "enter" || payload.type === "over") {
       dropArea.classList.add("dragover");
       return;
     }
 
-    if (payload.type === "cancel") {
+    if (payload.type === "leave") {
       dropArea.classList.remove("dragover");
       return;
     }
 
     if (payload.type === "drop") {
       dropArea.classList.remove("dragover");
-      const paths = payload.paths; // ここにファイル/フォルダのパス配列が入る
+      const paths = payload.paths;
 
       if (!paths || paths.length === 0) { return; }
 
